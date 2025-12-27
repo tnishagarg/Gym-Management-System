@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Trainers - The CLUSTER</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/dashboard.html">Back</a
+      ><a class="logout" href="/logout">Logout</a>
+    </header>
+    <h2>Trainers</h2>
+    <form id="trainerForm">
+      <input type="hidden" name="trainer_id" id="trainer_id" />
+      <input
+        name="trainer_first_name"
+        id="trainer_first_name"
+        placeholder="First name"
+        required
+      />
+      <input
+        name="trainer_last_name"
+        id="trainer_last_name"
+        placeholder="Last name"
+        required
+      />
+      <input name="times" id="times" placeholder="Times (comma separated)" />
+      <input
+        name="mobiles"
+        id="t_mobiles"
+        placeholder="Mobiles (comma separated)"
+      />
+      <button id="trainerSubmit">Add Trainer</button>
+      <button type="button" id="trainerCancel" style="display: none">
+        Cancel
+      </button>
+    </form>
+    <h3>All trainers</h3>
+    <table id="trainersTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Times</th>
+          <th>Mobiles</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <script>
+      let editingTrainer = null;
+      function loadTrainers() {
+        fetch("/api/trainers")
+          .then((r) => r.json())
+          .then((arr) => {
+            const tbody = document.querySelector("#trainersTable tbody");
+            tbody.innerHTML = "";
+            arr.forEach((t) => {
+              const tr = document.createElement("tr");
+              tr.innerHTML =
+                "<td>" +
+                t.trainer_id +
+                "</td><td>" +
+                t.trainer_first_name +
+                " " +
+                t.trainer_last_name +
+                "</td><td>" +
+                (t.times || "") +
+                "</td><td>" +
+                (t.mobiles || "") +
+                "</td>" +
+                '<td><button onclick="startEditTrainer(' +
+                t.trainer_id +
+                ')">Update</button> <button onclick="confirmDeleteTrainer(' +
+                t.trainer_id +
+                ')">Delete</button></td>';
+              tbody.appendChild(tr);
+            });
+          });
+      }
+      document
+        .getElementById("trainerForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const fd = new FormData(e.target);
+          const obj = Object.fromEntries(fd.entries());
+         if (obj.times) {
+  obj.times = obj.times
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean)
+    .join(", ");
+}
+
+if (obj.mobiles) {
+  obj.mobiles = obj.mobiles
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean)
+    .join(", ");
+}
+          
+    if (editingTrainer) {
+      // force trainer_id from hidden field
+      obj.trainer_id = document.getElementById("trainer_id").value;
+
+      fetch("/api/trainers/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(obj),
+      }).then(() => {
+        resetTrainerForm();
+        loadTrainers();
+      });
+    } else {
+      fetch("/api/trainers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(obj),
+      }).then(() => {
+        e.target.reset();
+        loadTrainers();
+      });
+    }
+  });
+      function startEditTrainer(id) {
+        fetch("/api/trainers?id=" + id)
+          .then((r) => r.json())
+          .then((t) => {
+            editingTrainer = t.trainer_id;
+            document.getElementById("trainer_id").value = t.trainer_id;
+            document.getElementById("trainer_first_name").value =
+              t.trainer_first_name || "";
+            document.getElementById("trainer_last_name").value =
+              t.trainer_last_name || "";
+            document.getElementById("times").value = t.times || "";
+            document.getElementById("t_mobiles").value = t.mobiles || "";
+            document.getElementById("trainerSubmit").textContent =
+              "Update Trainer";
+            document.getElementById("trainerCancel").style.display =
+              "inline-block";
+          });
+      }
+      function resetTrainerForm() {
+        editingTrainer = null;
+        document.getElementById("trainerForm").reset();
+        document.getElementById("trainerSubmit").textContent = "Add Trainer";
+        document.getElementById("trainerCancel").style.display = "none";
+      }
+      document
+        .getElementById("trainerCancel")
+        .addEventListener("click", resetTrainerForm);
+      function confirmDeleteTrainer(id) {
+        if (confirm("Delete trainer " + id + "?")) {
+          fetch("/api/trainers/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ trainer_id: id }),
+          }).then(() => loadTrainers());
+        }
+      }
+      loadTrainers();
+    </script>
+  </body>
+</html>

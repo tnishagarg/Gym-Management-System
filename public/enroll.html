@@ -1,0 +1,60 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Enrollments - The CLUSTER</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+  <header><a href="/dashboard.html">Back</a><a class="logout" href="/logout">Logout</a></header>
+  <h2>Enrollments</h2>
+  <form id="enrollForm">
+    <input type="hidden" id="old_mem" name="old_mem">
+    <input type="hidden" id="old_wid" name="old_wid">
+    <input name="mem_id" id="mem_id" placeholder="Member ID" required>
+    <input name="workout_id" id="en_workout_id" placeholder="Workout ID" required>
+    <label>Date</label><input name="date" id="en_date" type="date">
+    <button id="enrollSubmit">Add Enrollment</button>
+    <button type="button" id="enrollCancel" style="display:none">Cancel</button>
+  </form>
+  <h3>All enrollments</h3>
+  <table id="enrollTable"><thead><tr><th>Member</th><th>Workout</th><th>Date</th><th>Actions</th></tr></thead><tbody></tbody></table>
+<script>
+let editingEnroll = null;
+function loadEnrolls(){ fetch('/api/enrolls').then(r=>r.json()).then(arr=>{
+  const tbody=document.querySelector('#enrollTable tbody'); tbody.innerHTML='';
+  arr.forEach(e=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = '<td>'+ (e.mem_first_name || '') + ' ' + (e.mem_last_name || '') + ' ('+e.mem_id+')</td>' +
+                   '<td>'+ (e.workout_name || '') + ' ('+e.workout_id+')</td>' +
+                   '<td>'+(e.date||'')+'</td>' +
+                   '<td><button onclick="startEditEnroll('+e.mem_id+','+e.workout_id+')">Update</button> <button onclick="confirmDeleteEnroll('+e.mem_id+','+e.workout_id+')">Delete</button></td>';
+    tbody.appendChild(tr);
+  });
+}); }
+document.getElementById('enrollForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const fd=new FormData(e.target); const obj=Object.fromEntries(fd.entries());
+  if(editingEnroll){
+    obj.old_mem_id = document.getElementById('old_mem').value;
+    obj.old_workout_id = document.getElementById('old_wid').value;
+    fetch('/api/enrolls/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}).then(()=>{ resetEnrollForm(); loadEnrolls(); });
+  } else {
+    fetch('/api/enrolls',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}).then(()=>{ e.target.reset(); loadEnrolls(); });
+  }
+});
+function startEditEnroll(mem, wid){
+  fetch('/api/enrolls?old_mem='+mem+'&old_wid='+wid).then(r=>r.json()).then(e=>{
+    editingEnroll = true;
+    document.getElementById('old_mem').value = mem;
+    document.getElementById('old_wid').value = wid;
+    document.getElementById('mem_id').value = e.mem_id || mem;
+    document.getElementById('en_workout_id').value = e.workout_id || wid;
+    document.getElementById('en_date').value = e.date || '';
+    document.getElementById('enrollSubmit').textContent='Update Enrollment';
+    document.getElementById('enrollCancel').style.display='inline-block';
+  });
+}
+function resetEnrollForm(){ editingEnroll=null; document.getElementById('enrollForm').reset();
+  document.getElementById('enrollSubmit').textContent='Add Enrollment'; document.getElementById('enrollCancel').style.display='none'; document.getElementById('old_mem').value=''; document.getElementById('old_wid').value='';
+}
+document.getElementById('enrollCancel').addEventListener('click', resetEnrollForm);
+function confirmDeleteEnroll(mem, wid){ if(confirm('Delete enrollment for member '+mem+' & workout '+wid+'?')){ fetch('/api/enrolls/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mem_id:mem, workout_id:wid})}).then(()=>loadEnrolls()); } }
+loadEnrolls();
+</script>
+</body></html>

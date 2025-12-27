@@ -1,0 +1,60 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Gyms - The CLUSTER</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+  <header><a href="/dashboard.html">Back</a><a class="logout" href="/logout">Logout</a></header>
+  <h2>Gyms</h2>
+  <form id="gymForm">
+    <input type="hidden" name="gym_id" id="gym_id">
+    <input name="gym_name" id="gym_name" placeholder="Gym name" required>
+    <input name="street_no" id="street_no" placeholder="Street no">
+    <input name="street_name" id="street_name" placeholder="Street name">
+    <input name="pin_code" id="pin_code" placeholder="Pin code">
+    <input name="landmark" id="landmark" placeholder="Landmark">
+    <select name="type" id="type"><option>Men</option><option>Women</option><option>Unisex</option></select>
+    <button id="gymSubmit">Add Gym</button>
+    <button type="button" id="gymCancel" style="display:none">Cancel</button>
+  </form>
+  <h3>All gyms</h3>
+  <table id="gymsTable"><thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Actions</th></tr></thead><tbody></tbody></table>
+<script>
+let editingGym = null;
+function loadGyms(){ fetch('/api/gyms').then(r=>r.json()).then(data=>{
+  const tbody = document.querySelector('#gymsTable tbody'); tbody.innerHTML='';
+  data.forEach(g=>{ const tr=document.createElement('tr');
+    tr.innerHTML = '<td>'+g.gym_id+'</td><td>'+g.gym_name+'</td><td>'+(g.type||'')+'</td>' +
+                   '<td><button onclick="startEditGym('+g.gym_id+')">Update</button> <button onclick="confirmDeleteGym('+g.gym_id+')">Delete</button></td>';
+    tbody.appendChild(tr);
+  });
+}); }
+document.getElementById('gymForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const fd=new FormData(e.target); const obj=Object.fromEntries(fd.entries());
+  if(editingGym){
+    obj.gym_id = editingGym;
+    fetch('/api/gyms/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}).then(()=>{ resetGymForm(); loadGyms(); });
+  } else {
+    fetch('/api/gyms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}).then(()=>{ e.target.reset(); loadGyms(); });
+  }
+});
+function startEditGym(id){
+  fetch('/api/gyms?id='+id).then(r=>r.json()).then(g=>{
+    editingGym = g.gym_id;
+    document.getElementById('gym_id').value = g.gym_id;
+    document.getElementById('gym_name').value = g.gym_name || '';
+    document.getElementById('street_no').value = g.street_no || '';
+    document.getElementById('street_name').value = g.street_name || '';
+    document.getElementById('pin_code').value = g.pin_code || '';
+    document.getElementById('landmark').value = g.landmark || '';
+    document.getElementById('type').value = g.type || 'Men';
+    document.getElementById('gymSubmit').textContent = 'Update Gym';
+    document.getElementById('gymCancel').style.display = 'inline-block';
+  });
+}
+function resetGymForm(){ editingGym = null; document.getElementById('gymForm').reset();
+  document.getElementById('gymSubmit').textContent = 'Add Gym'; document.getElementById('gymCancel').style.display='none';
+}
+document.getElementById('gymCancel').addEventListener('click', resetGymForm);
+function confirmDeleteGym(id){ if(confirm('Delete gym '+id+'?')){ fetch('/api/gyms/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gym_id:id})}).then(()=>loadGyms()); } }
+loadGyms();
+</script>
+</body></html>

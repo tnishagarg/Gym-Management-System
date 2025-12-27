@@ -1,0 +1,57 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Workouts - The CLUSTER</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+  <header><a href="/dashboard.html">Back</a><a class="logout" href="/logout">Logout</a></header>
+  <h2>Workouts</h2>
+  <form id="workoutForm">
+    <input type="hidden" name="workout_id" id="workout_id">
+    <input name="workout_name" id="workout_name" placeholder="Workout name" required>
+    <input name="description" id="description" placeholder="Short description">
+    <input name="schedule" id="schedule" placeholder="Schedule (e.g. 3 sets of 10)">
+    <input name="repetition" id="repetition" placeholder="Repetition (e.g. 2.0)">
+    <button id="workoutSubmit">Add Workout</button>
+    <button type="button" id="workoutCancel" style="display:none">Cancel</button>
+  </form>
+  <h3>All workouts</h3>
+  <table id="workoutsTable"><thead><tr><th>ID</th><th>Name</th><th>Schedule</th><th>Rep</th><th>Actions</th></tr></thead><tbody></tbody></table>
+<script>
+let editingWorkout = null;
+function loadWorkouts(){ fetch('/api/workouts').then(r=>r.json()).then(arr=>{
+  const tbody=document.querySelector('#workoutsTable tbody'); tbody.innerHTML='';
+  arr.forEach(w=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = '<td>'+w.workout_id+'</td><td>'+w.workout_name+'</td><td>'+(w.workout_schedule||'')+'</td><td>'+(w.workout_repetition||'')+'</td>' +
+                   '<td><button onclick="startEditWorkout('+w.workout_id+')">Update</button> <button onclick="confirmDeleteWorkout('+w.workout_id+')">Delete</button></td>';
+    tbody.appendChild(tr);
+  });
+}); }
+document.getElementById('workoutForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const fd=new FormData(e.target); const obj=Object.fromEntries(fd.entries());
+  if(editingWorkout){
+    obj.workout_id = editingWorkout;
+    fetch('/api/workouts/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}).then(()=>{ resetWorkoutForm(); loadWorkouts(); });
+  } else {
+    fetch('/api/workouts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}).then(()=>{ e.target.reset(); loadWorkouts(); });
+  }
+});
+function startEditWorkout(id){
+  fetch('/api/workouts?id='+id).then(r=>r.json()).then(w=>{
+    editingWorkout = w.workout_id;
+    document.getElementById('workout_id').value = w.workout_id;
+    document.getElementById('workout_name').value = w.workout_name || '';
+    document.getElementById('description').value = w.description || '';
+    document.getElementById('schedule').value = w.workout_schedule || '';
+    document.getElementById('repetition').value = w.workout_repetition || '';
+    document.getElementById('workoutSubmit').textContent='Update Workout';
+    document.getElementById('workoutCancel').style.display='inline-block';
+  });
+}
+function resetWorkoutForm(){ editingWorkout=null; document.getElementById('workoutForm').reset();
+  document.getElementById('workoutSubmit').textContent='Add Workout'; document.getElementById('workoutCancel').style.display='none';
+}
+document.getElementById('workoutCancel').addEventListener('click', resetWorkoutForm);
+function confirmDeleteWorkout(id){ if(confirm('Delete workout '+id+'?')){ fetch('/api/workouts/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({workout_id:id})}).then(()=>loadWorkouts()); } }
+loadWorkouts();
+</script>
+</body></html>

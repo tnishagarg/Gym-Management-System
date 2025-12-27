@@ -1,0 +1,60 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Members - The CLUSTER</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+  <header><a href="/dashboard.html">Back</a><a class="logout" href="/logout">Logout</a></header>
+  <h2>Members</h2>
+  <form id="memberForm">
+    <input type="hidden" name="mem_id" id="mem_id">
+    <input name="mem_first_name" id="mem_first_name" placeholder="First name" required>
+    <input name="mem_last_name" id="mem_last_name" placeholder="Last name" required>
+    <label>DOB</label><input name="dob" id="dob" type="date" required>
+    <input name="trainer_id" id="trainer_id" placeholder="Trainer id (optional)">
+    <input name="mobiles" id="mobiles" placeholder="Mobile numbers (comma separated)">
+    <button id="memberSubmit">Add Member</button>
+    <button type="button" id="memberCancel" style="display:none">Cancel</button>
+  </form>
+  <h3>All members</h3>
+  <table id="membersTable"><thead><tr><th>ID</th><th>Name</th><th>Age</th><th>Mobiles</th><th>Actions</th></tr></thead><tbody></tbody></table>
+<script>
+let editingMember = null;
+function loadMembers(){ fetch('/api/members').then(r=>r.json()).then(arr=>{
+  const tbody=document.querySelector('#membersTable tbody'); tbody.innerHTML='';
+  arr.forEach(m=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = '<td>'+m.mem_id+'</td><td>'+m.mem_first_name+' '+m.mem_last_name+'</td><td>'+(m.age||'')+'</td><td>'+(m.mobiles||'')+'</td>' +
+                   '<td><button onclick="startEditMember('+m.mem_id+')">Update</button> <button onclick="confirmDeleteMember('+m.mem_id+')">Delete</button></td>';
+    tbody.appendChild(tr);
+  });
+}); }
+document.getElementById('memberForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const fd=new FormData(e.target); const obj=Object.fromEntries(fd.entries());
+  if(obj.mobiles) obj.mobiles = obj.mobiles.split(',').map(s=>s.trim()).filter(Boolean);
+  if(editingMember){
+    obj.mem_id = editingMember;
+    fetch('/api/members/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}).then(()=>{ resetMemberForm(); loadMembers(); });
+  } else {
+    fetch('/api/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}).then(()=>{ e.target.reset(); loadMembers(); });
+  }
+});
+function startEditMember(id){
+  fetch('/api/members?id='+id).then(r=>r.json()).then(m=>{
+    editingMember = m.mem_id;
+    document.getElementById('mem_id').value = m.mem_id;
+    document.getElementById('mem_first_name').value = m.mem_first_name || '';
+    document.getElementById('mem_last_name').value = m.mem_last_name || '';
+    document.getElementById('dob').value = m.dob || '';
+    document.getElementById('trainer_id').value = m.trainer_id || '';
+    document.getElementById('mobiles').value = m.mobiles || '';
+    document.getElementById('memberSubmit').textContent = 'Update Member';
+    document.getElementById('memberCancel').style.display='inline-block';
+  });
+}
+function resetMemberForm(){ editingMember = null; document.getElementById('memberForm').reset();
+  document.getElementById('memberSubmit').textContent='Add Member'; document.getElementById('memberCancel').style.display='none';
+}
+document.getElementById('memberCancel').addEventListener('click', resetMemberForm);
+function confirmDeleteMember(id){ if(confirm('Delete member '+id+'?')){ fetch('/api/members/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mem_id:id})}).then(()=>loadMembers()); } }
+loadMembers();
+</script>
+</body></html>
