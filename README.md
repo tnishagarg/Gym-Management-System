@@ -41,7 +41,7 @@ It replaces manual record-keeping with an organized, searchable, and easy-to-use
 
 ---
 
-## 🎯 Use Case
+## Use Case
 
 Designed for:
 - Gym owners
