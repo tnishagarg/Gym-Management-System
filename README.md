@@ -41,22 +41,14 @@ It replaces manual record-keeping with an organized, searchable, and easy-to-use
 
 ---
 
-## Design
+## 🎯 Use Case
+
 Designed for:
 - Gym owners
 - Fitness center administrators
 - Small and medium fitness businesses
 
-
----
-
-## Use Cases
-
-Fitness centers, personal training studios, wellness clubs, and sports facilities.
-
 ---
 
 Made with ❤️ by **Tnisha Garg**
 
-
-Built with ❤️ for the fitness community
