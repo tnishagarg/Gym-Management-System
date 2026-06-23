@@ -136,18 +136,6 @@ END $$
 
 DELIMITER ;
 
--- Trigger 1: Unique mobile number
-DROP TRIGGER IF EXISTS trg_unique_mobile;
-DELIMITER $$
-CREATE TRIGGER trg_unique_mobile
-BEFORE INSERT ON mem_mobile_no
-FOR EACH ROW
-BEGIN
-  IF EXISTS (SELECT 1 FROM mem_mobile_no WHERE mobile_no = NEW.mobile_no) THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Mobile number already registered';
-  END IF;
-END $$
-DELIMITER ;
 
 -- Seed
 INSERT INTO gym (gym_name, street_no, street_name, pin_code, landmark) VALUES
