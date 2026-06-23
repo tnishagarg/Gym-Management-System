@@ -124,7 +124,6 @@ app.post('/api/gyms/delete', requireLogin, (req, res) => {
 });
 
 // ---------- Members ----------
-// list or single (include age calculated by DB)
 app.get('/api/members', requireLogin, (req, res) => {
   if (req.query.id) {
     con.query('SELECT m.*, DATE_FORMAT(m.dob, "%Y-%m-%d") AS dob, GROUP_CONCAT(mm.mobile_no) AS mobiles, m.trainer_id FROM member m LEFT JOIN mem_mobile_no mm ON m.mem_id=mm.mem_id WHERE m.mem_id=? GROUP BY m.mem_id', [req.query.id], (err, rows)=>{
@@ -133,7 +132,7 @@ app.get('/api/members', requireLogin, (req, res) => {
     });
     return;
   }
-  const sql = `SELECT m.*, getAge(m.dob) AS age, GROUP_CONCAT(mm.mobile_no) AS mobiles, t.trainer_first_name, t.trainer_last_name
+  const sql = `SELECT m.*, TIMESTAMPDIFF(YEAR, m.dob, CURDATE()) AS age, GROUP_CONCAT(mm.mobile_no) AS mobiles, t.trainer_first_name, t.trainer_last_name
                FROM member m
                LEFT JOIN member_detail md ON m.mem_id = md.mem_id
                LEFT JOIN mem_mobile_no mm ON m.mem_id = mm.mem_id
@@ -161,19 +160,55 @@ app.post('/api/members', requireLogin, (req, res) => {
 });
 
 app.post('/api/members/update', requireLogin, (req, res) => {
-  const { mem_id, mem_first_name, mem_last_name, dob, trainer_id, mobiles } = req.body;
-  con.query('UPDATE member SET mem_first_name=?, mem_last_name=?, dob=?, trainer_id=? WHERE mem_id=?',
-    [mem_first_name, mem_last_name, dob, trainer_id || null, mem_id], (err) => {
+  const {
+    mem_id,
+    mem_first_name,
+    mem_last_name,
+    dob,
+    trainer_id,
+    mobiles
+  } = req.body;
+
+  con.query(
+    'UPDATE member SET mem_first_name=?, mem_last_name=?, dob=?, trainer_id=? WHERE mem_id=?',
+    [mem_first_name, mem_last_name, dob, trainer_id || null, mem_id],
+    (err) => {
       if (err) throw err;
-      // replace mobiles
-      con.query('DELETE FROM mem_mobile_no WHERE mem_id=?', [mem_id], (err2)=>{
-        if (err2) throw err2;
-        if (mobiles && mobiles.length) {
-          const vals = mobiles.map(m => [mem_id, m]);
-          con.query('INSERT INTO mem_mobile_no (mem_id, mobile_no) VALUES ?', [vals], (err3)=>{ if (err3) throw err3; res.json({ ok: true }); });
-        } else res.json({ ok: true });
-      });
-  });
+
+      // Delete old mobile numbers
+      con.query(
+        'DELETE FROM mem_mobile_no WHERE mem_id=?',
+        [mem_id],
+        (err2) => {
+          if (err2) throw err2;
+
+          // Insert new mobile numbers
+          if (mobiles && mobiles.length) {
+            const vals = mobiles.map(m => [mem_id, m]);
+
+            con.query(
+              'INSERT INTO mem_mobile_no (mem_id, mobile_no) VALUES ?',
+              [vals],
+              (err3) => {
+                if (err3) {
+                  if (err3.code === 'ER_DUP_ENTRY') {
+                    return res.status(400).json({
+                      error: 'Mobile number already registered'
+                    });
+                  }
+                  throw err3;
+                }
+
+                res.json({ ok: true });
+              }
+            );
+          } else {
+            res.json({ ok: true });
+          }
+        }
+      );
+    }
+  );
 });
 
 app.post('/api/members/delete', requireLogin, (req, res) => {

@@ -75,7 +75,8 @@ CREATE TABLE mem_mobile_no (
   PRIMARY KEY (mem_id, mobile_no),
   FOREIGN KEY (mem_id) REFERENCES member(mem_id) ON DELETE CASCADE
 );
-
+ALTER TABLE mem_mobile_no
+ADD CONSTRAINT uq_mobile UNIQUE (mobile_no);
 
 CREATE TABLE workout (
   workout_id INT AUTO_INCREMENT PRIMARY KEY,
