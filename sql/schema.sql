@@ -122,16 +122,17 @@ BEGIN
 END $$
 DELIMITER ;
 
--- Function
-DROP FUNCTION IF EXISTS TotalWorkouts;
+
+DROP PROCEDURE IF EXISTS TotalWorkouts;
 DELIMITER $$
-CREATE FUNCTION TotalWorkouts(p_mem_id INT) RETURNS INT
-DETERMINISTIC
+
+CREATE PROCEDURE TotalWorkouts(IN p_mem_id INT)
 BEGIN
-  DECLARE cnt INT;
-  SELECT COUNT(*) INTO cnt FROM enrolls_to WHERE mem_id = p_mem_id;
-  RETURN IFNULL(cnt, 0);
+    SELECT COUNT(*) AS total_workouts
+    FROM enrolls_to
+    WHERE mem_id = p_mem_id;
 END $$
+
 DELIMITER ;
 
 -- Trigger 1: Unique mobile number
@@ -169,3 +170,4 @@ INSERT INTO workout_plan (workout_id, workout_schedule, workout_repetition) VALU
 
 CALL AssignTrainerToWorkout(1,1);
 CALL AssignTrainerToWorkout(2,2);
+CALL TotalWorkouts(1);
