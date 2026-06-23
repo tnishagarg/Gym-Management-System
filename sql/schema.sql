@@ -1,6 +1,4 @@
--- FULL SCHEMA for Gym Management (includes admin for plain login)
-CREATE DATABASE IF NOT EXISTS gymdb;
-USE gymdb;
+
 
 SET FOREIGN_KEY_CHECKS=0;
 DROP TABLE IF EXISTS enrolls_to, workout_plan, instructs, trainer_time, trainer_mobile_no,
