@@ -15,7 +15,8 @@ CREATE TABLE admin(
   email VARCHAR(120) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL
 );
-INSERT INTO admin(name,email,password) VALUES ('Demo Admin','admin@gym.local','admin123');
+INSERT INTO admin(name,email,password) VALUES ('Demo Admin','admin@gym.local','$2b$10$pCaMjCQ8QDVXnujqfmDKdegjQBPK5s.V5rjWh6WpDjLmz2ttBEnGW');
+
 
 -- Core tables
 CREATE TABLE gym (

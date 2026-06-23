@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2');
+const bcrypt = require('bcrypt');
 const path = require('path');
 const session = require('express-session');
 const app = express();
@@ -40,17 +41,36 @@ function requireLogin(req, res, next) {
 
 // Auth
 app.post('/login', (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
-  const sql = 'SELECT admin_id, name, email FROM admin WHERE email = ? AND password = ? LIMIT 1';
-  con.query(sql, [email, password], (err, results) => {
-    if (err) throw err;
-    if (!results || results.length === 0) {
-      return res.send('<script>alert("Invalid credentials");location.href="/";</script>');
-    }
-    req.session.admin = results[0];
-    res.redirect('/dashboard.html');
-  });
+    const { email, password } = req.body;
+
+    const sql = "SELECT * FROM admin WHERE email = ? LIMIT 1";
+
+    con.query(sql, [email], async (err, results) => {
+
+        if (err) throw err;
+
+        if (results.length === 0) {
+            return res.send('<script>alert("Invalid credentials");location.href="/";</script>');
+        }
+
+        const admin = results[0];
+
+        const match = await bcrypt.compare(password, admin.password);
+
+        if (!match) {
+            return res.send('<script>alert("Invalid credentials");location.href="/";</script>');
+        }
+
+        req.session.admin = {
+            admin_id: admin.admin_id,
+            name: admin.name,
+            email: admin.email
+        };
+
+        res.redirect('/dashboard.html');
+
+    });
+
 });
 
 app.get('/logout', (req, res) => {
